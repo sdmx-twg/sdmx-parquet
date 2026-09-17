@@ -5,7 +5,7 @@ SDMX-Parquet data message is an SDMX data format based on the IANA media type [v
 See more on the [parquet documentation](https://parquet.apache.org/docs/), to find more about the general parquet format, its characteristics, and features.
 
 - SDMX-Parquet format is designed as a tabular representation (SDMX flat) for data analytics use cases. It is optimized for storage, query performance. 
-- SDMX-Parquet format is not yet defined for structural metadata nor referential metadata, but the SDMX TWG is open to consider extending it to such use.
+- SDMX-Parquet format is not yet defined for structural metadata nor referential metadata. 
 
 ## Design principles for SDMX-Parquet 1.0 data messages
 
