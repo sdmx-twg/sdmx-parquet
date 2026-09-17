@@ -4,7 +4,8 @@ SDMX-Parquet data message is an SDMX data format based on the IANA media type [v
 
 See more on the [parquet documentation](https://parquet.apache.org/docs/), to find more about the general parquet format, its characteristics, and features.
 
-SDMX-Parquet format is designed as a tabular representation (SDMX flat) for data analytics use cases. It is optimized for storage, query performance. 
+- SDMX-Parquet format is designed as a tabular representation (SDMX flat) for data analytics use cases. It is optimized for storage, query performance. 
+- SDMX-Parquet format is not yet defined for structural metadata nor referential metadata, but the SDMX TWG is open to consider extending it to such use.
 
 ## Design principles for SDMX-Parquet 1.0 data messages
 
@@ -78,11 +79,15 @@ multi-column mappings below.
 | XHTML                     | String         | \<p\>Hello\</p\>        | String               | Byte Array   |
 
 
-**Multi Column Mapping**
+### Multi Column Mapping
+- Name conventions: Any component with parquet logical type = multi column should follow the convention _{component_id}_{reserved name}
+  
+**Time Values** - Time values are resolved, the syntax of the reported date provides enough information to derive the type i.e. a Quarterly date, a 
+Range, etc. The DSD contains the information used to resolve the reporting start and end periods for Reporting Periods.
 
-Time values are resolved, the syntax of the reported date provides enough information to derive the type i.e. a Quarterly date, a 
-Range, etc. The DSD contains the information used to resolve the reporting start and end periods for Reporting Periods
-
+Reserved names: 
+- *begin* - Exampe: _{component_id}_begin
+- *end* - Example _{component_id}_end
 
 | SDMX Primitive | SDMX Example            | Parquet Logical Type | Parquet Type |  Description |
 |----------------|-------------------------|----------------------|--------------|--------------|
@@ -90,16 +95,17 @@ Range, etc. The DSD contains the information used to resolve the reporting start
 |                |                         | Timestamp            | Int64        | Start Period |
 |                |                         | Timestamp            | Int64        | End Period   |
 
-GeoJSON values are stored as the original string for round-tripping, as WKB for GeoParquet-compatible spatial queries, and as convenience lat/lon columns for Point geometries.
+**Geospacial values** - GeoJSON values are stored as the original string for round-tripping, as WKB for GeoParquet-compatible spatial queries, and as convenience lat/lon columns for Point geometries.
 
-Q) Should the parquet logical type say GeoParquet?                                                                                                                                                                                                                                                                                                                         
-
-A) No — GeoParquet is not a Parquet logical type. It's a metadata convention that sits above the Parquet type system. The WKB column has no formal Parquet logical type annotation (None / raw bytes); GeoParquet compliance is expressed through column-level metadata (a JSON object describing the CRS, geometry types, bounding box etc.) attached to the column, not
-  through the logical type field.
+Reserved names: 
+- *geo* - Exampe: _{component_id}_geo
+- *longitude* - Example _{component_id}_longitude
+- *latitude* - Example _{component_id}_latitude
+  
+> GeoParquet is not a Parquet logical type. It's a metadata convention that sits above the Parquet type system.
+> The WKB column has no formal Parquet logical type annotation (None / raw bytes); GeoParquet compliance is expressed through column-level metadata (a JSON object describing the CRS, geometry types, bounding box etc.) attached to the column, not  through the logical type field.
 
   None is the correct entry for the Parquet Logical Type — the Description column already carries the GeoParquet reference, which is the right place for it.
-
-
 
 | SDMX Primitive | SDMX Example            | Parquet Logical Type | Parquet Type |  Description                        |
 |----------------|-------------------------|----------------------|--------------|-------------------------------------|
@@ -108,3 +114,4 @@ A) No — GeoParquet is not a Parquet logical type. It's a metadata convention t
 |                |                         | Double               | Double       | Longitude (Point geometries only)   |
 |                |                         | Double               | Double       | Latitude (Point geometries only)    |
 
+### Example
