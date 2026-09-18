@@ -31,6 +31,7 @@ in the multi-column mappings.
 ### Format mapping
 The following matrix represents the SDMX component representation type in SDMX and its mapping with parquet. 
 
+- SDMX components with multi-values should be expressed to parquet array type. 
 - Rows whose logical type reads 'multi-column' expand into several Parquet columns; those expansions are listed in the
 multi-column mappings below.
 
