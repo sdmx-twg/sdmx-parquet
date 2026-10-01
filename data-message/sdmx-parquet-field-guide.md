@@ -81,14 +81,14 @@ multi-column mappings below.
 
 
 ### Multi Column Mapping
-- Name conventions: Any component with parquet logical type = multi column should follow the convention _{component_id}_{reserved name}
+- Name conventions: Any component with parquet logical type = multi column should follow the convention \_{component_id}\_{reserved name}
   
 **Time Values** - Time values are resolved, the syntax of the reported date provides enough information to derive the type i.e. a Quarterly date, a 
 Range, etc. The DSD contains the information used to resolve the reporting start and end periods for Reporting Periods.
 
 Reserved names: 
-- *begin* - Exampe: _{component_id}_begin
-- *end* - Example _{component_id}_end
+- *begin* - Exampe: \_{component_id}\_begin
+- *end* - Example \_{component_id}\_end
 
 | SDMX Primitive | SDMX Example            | Parquet Logical Type | Parquet Type |  Description |
 |----------------|-------------------------|----------------------|--------------|--------------|
@@ -99,9 +99,9 @@ Reserved names:
 **Geospacial values** - GeoJSON values are stored as the original string for round-tripping, as WKB for GeoParquet-compatible spatial queries, and as convenience lat/lon columns for Point geometries.
 
 Reserved names: 
-- *geo* - Exampe: _{component_id}_geo
-- *longitude* - Example _{component_id}_longitude
-- *latitude* - Example _{component_id}_latitude
+- *geo* - Exampe: \_{component_id}\_geo
+- *longitude* - Example \_{component_id}\_longitude
+- *latitude* - Example \_{component_id}\_latitude
   
 > GeoParquet is not a Parquet logical type. It's a metadata convention that sits above the Parquet type system.
 > The WKB column has no formal Parquet logical type annotation (None / raw bytes); GeoParquet compliance is expressed through column-level metadata (a JSON object describing the CRS, geometry types, bounding box etc.) attached to the column, not  through the logical type field.
