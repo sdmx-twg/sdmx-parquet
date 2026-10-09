@@ -10,13 +10,13 @@ See more on the [parquet documentation](https://parquet.apache.org/docs/), to fi
 ## Design principles for SDMX-Parquet 1.0 data messages
 
 ### Format characteristics
-- Structures - Information about the structure(s) can be provided in the metadata section.
+- Structures - Information about the Dataflow can be provided in the metadata section.
 - Labels - should be ids only
 - Packaged in tabular format (SDMX flat representation)
 - Streamable - A message is streamable
 - Cube components -The combination of dimension values can be expressed as cube components.
 - Strong typing & Native data types - The combination of dimension values can be expressed as cube components.
-- Attributes with multiple values - The combination of dimension values can be expressed as cube components.
+- Attributes with multiple values  - Attributes with multiple values can be expressed in a native way (i.e. not relying on tricks like having a comma separated strings).
 - Readable by non-SDMX sofware for analysis -The combination of dimension values can be expressed as cube components.
 - The data contents are dataflow specific and contain the entire existing data (Filtering at the Rest API level is not supported).
   
