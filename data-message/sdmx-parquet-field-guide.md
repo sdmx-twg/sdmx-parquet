@@ -410,6 +410,7 @@ SDMX REST data queries can return SDMX-Parquet with the media type:
 - It has no parameters other than `version`. `version=1.0` is equivalent to
   `version=1.0.0`.
 - Unsupported versions return `406 Not Acceptable`, as for other formats.
+- Web services that implement the [representation query parameters](https://github.com/sdmx-twg/sdmx-rest/blob/develop/docs/extend.md) of SDMX REST use `format=parquetdata`, e.g. `https://ws-entry-point/data/dataflow/ECB/EXR/1.0.0/*?format=parquetdata&formatVersion=1.0.0`.
 
 ### Supported queries
 
@@ -474,7 +475,8 @@ the [`sdmx.as_of`](#file-metadata) file metadata key.
   is not used to select the Parquet compression codec.
 - Web services SHOULD NOT apply an additional `Content-Encoding` by default,
   as the payload is already compressed.
-
+- Web services SHOULD send the `Content-Disposition` header with the `attachment` type and a file name built from the dataflow identification, e.g. `Content-Disposition: attachment; filename="ECB_EXR_1.0.0.parquet"`.
+  
 ### Data actions and incremental updates
 
 - Data actions (Merge, Replace, Delete) are not supported: a file contains
