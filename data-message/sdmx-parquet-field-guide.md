@@ -95,8 +95,9 @@ level) are repeated on each related observation row.
 | [`_COMPONENT_ID_begin`](#time-period-columns) | Start of the reported time period (inclusive). | Yes, for time period types |
 | [`_COMPONENT_ID_end`](#time-period-columns) | End of the reported time period (inclusive). | Yes, for time period types |
 | [`_COMPONENT_ID_geo`](#geospatial-columns) | Geometry as WKB. | Yes, for GeospatialInformation |
-| [`_COMPONENT_ID_longitude`](#geospatial-columns) | Longitude of Point geometries. | Yes, for GeospatialInformation |
-| [`_COMPONENT_ID_latitude`](#geospatial-columns) | Latitude of Point geometries. | Yes, for GeospatialInformation |
+| [`_COMPONENT_ID_X`](#geospatial-columns) | Longitude of Point and PointZ geometries. | Yes, for GeospatialInformation |
+| [`_COMPONENT_ID_Y`](#geospatial-columns) | Latitude of Point and PointZ geometries. | Yes, for GeospatialInformation |
+| [`_COMPONENT_ID_Z`](#geospatial-columns) | Altitude of PointZ geometries. | Yes, for GeospatialInformation |
 | **Other columns** | | |
 | [Custom column](#custom-columns) | Any implementer-defined column. | No |
 
@@ -342,6 +343,7 @@ and as convenience longitude/latitude columns for Point geometries and longitude
   ([RFC 7946](https://www.rfc-editor.org/rfc/rfc7946)), which corresponds to
   the GeoParquet default coordinate reference system (`OGC:CRS84`). The `crs`
   field MAY therefore be omitted.
+- Note that for compatibility reasons with WKB, SDMX POINT type MUST be represented as POINTZ when it includes Altitude data.
 
 ## Values
 
@@ -354,7 +356,7 @@ each dimension, while measure and attribute values are optional:
 | --- | --- | --- |
 | Dimension columns, including the time dimension and its `_begin` and `_end` companion columns | MUST NOT contain nulls | SHOULD be `required` |
 | Measure and attribute columns, and their companion columns | MAY contain nulls: null means no value | `optional` |
-| `_longitude` and `_latitude` | Null for non-Point geometries | `optional` |
+| `_X` `_Y` `_Z`| Null for non-Point geometries | `optional` |
 | Elements of a `LIST`, values of a `MAP` | MUST NOT be null | SHOULD be `required` |
 
 - Receivers MUST accept dimension columns declared `optional` that contain no
