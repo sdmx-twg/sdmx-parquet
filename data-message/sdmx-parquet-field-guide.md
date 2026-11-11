@@ -324,14 +324,15 @@ Examples:
 
 GeospatialInformation values, reported as GeoJSON, are stored as the original
 string for round-tripping, as WKB for GeoParquet-compatible spatial queries,
-and as convenience longitude/latitude columns for Point geometries:
+and as convenience longitude/latitude columns for Point geometries and longitude/latitude/altitude for PointZ geometries:
 
 | Column | Parquet logical type | Parquet physical type | Content |
 | --- | --- | --- | --- |
 | `{COMPONENT_ID}` | `STRING` | `BYTE_ARRAY` | The GeoJSON value as reported, e.g. `{"type":"Point","coordinates":[2.3522,48.8566]}` |
 | `_{COMPONENT_ID}_geo` | — | `BYTE_ARRAY` | The geometry as WKB (Well-Known Binary) |
-| `_{COMPONENT_ID}_longitude` | — | `DOUBLE` | Longitude, for Point geometries; null otherwise, e.g. `2.3522` |
-| `_{COMPONENT_ID}_latitude` | — | `DOUBLE` | Latitude, for Point geometries; null otherwise, e.g. `48.8566` |
+| `_{COMPONENT_ID}_X` | — | `DOUBLE` | Longitude, for Point and PointZ geometries; null otherwise, e.g. `2.3522` |
+| `_{COMPONENT_ID}_Y` | — | `DOUBLE` | Latitude, for Point and PointZ geometries; null otherwise, e.g. `48.8566` |
+| `_{COMPONENT_ID}_Z` | — | `DOUBLE` | Altitude, for PointZ geometries; null otherwise, e.g. `1880.12` |
 
 - The `_geo` column MUST follow
   [GeoParquet 1.1](https://geoparquet.org/releases/v1.1.0): its description
