@@ -22,8 +22,7 @@ structural metadata or reference metadata.
 SDMX-Parquet 1.0 applies to both **SDMX 2.1** and **SDMX 3.x**:
 
 - it can represent data defined with SDMX 2.1 or SDMX 3.x structures;
-- it can be returned by web services implementing either SDMX REST line, with
-  the same media type, behaviour and error handling (see
+- it can be returned by SDMX REST web services (see
   [Relation to SDMX REST](#relation-to-sdmx-rest)).
 
 Some features only exist in SDMX 3.x data: multiple measures, multi-valued
@@ -410,42 +409,13 @@ Non-coded multi-lingual components map to a Parquet `MAP`:
 
 ## Relation to SDMX REST
 
-SDMX-Parquet is a response format for SDMX REST **data queries** only. It is
-not available for structure, metadata, schema or availability queries.
-
-### Media type
-
-SDMX REST data queries can return SDMX-Parquet with the media type:
+SDMX REST web services can return SDMX-Parquet for **data queries**, with the
+media type:
 
 `application/vnd.sdmx.data+parquet; version=1.0.0`
 
-- This media type is being added to the
-  [SDMX REST API](https://github.com/sdmx-twg/sdmx-rest/issues/294), for both
-  the SDMX 3.x and the SDMX 2.1 REST lines.
-- It has no parameters other than `version`. `version=1.0` is equivalent to
-  `version=1.0.0`.
-- Unsupported versions return `406 Not Acceptable`, as for other formats.
-- Web services that implement the [representation query parameters](https://github.com/sdmx-twg/sdmx-rest/blob/develop/docs/extend.md) of SDMX REST use `format=parquetdata`, e.g. `https://ws-entry-point/data/dataflow/ECB/EXR/1.0.0/*?format=parquetdata&formatVersion=1.0.0`.
-
-### Supported queries and responses
-
-The queries and parameters that a web service supports with SDMX-Parquet, and
-its responses otherwise (content negotiation, `406 Not Acceptable`, empty
-results, compression and HTTP headers), are defined in the
-[SDMX REST API](https://github.com/sdmx-twg/sdmx-rest/blob/develop/docs/data.md#sdmx-parquet). In short:
-
-- a web service that supports SDMX-Parquet returns the complete data of a
-  dataflow, provision agreement or data structure definition for a query
-  without filters;
-- each web service decides whether to support other query parameters with
-  SDMX-Parquet, including filtering (e.g. by key or by component) and
-  returning only the requested components, in which case the file contains
-  that subset;
-- for an `asOf` query, the sender writes the requested point in time in the
-  [`sdmx.as_of`](#file-metadata) file metadata key.
-
-Web services implementing the SDMX 2.1 REST line apply the same rules with the
-equivalent SDMX 2.1 parameters.
+The queries supported with SDMX-Parquet, and the related responses, are
+defined in the [SDMX REST API](https://github.com/sdmx-twg/sdmx-rest/blob/develop/docs/data.md#sdmx-parquet).
 
 ### Data actions and incremental updates
 
