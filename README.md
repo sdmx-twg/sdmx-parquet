@@ -22,7 +22,8 @@ ecosystem:
   readers can load only the columns and row groups they need, including
   directly from remote storage.
 - **Self-describing:** each file carries its schema and identifies its
-  dataflow in its metadata.
+  structure (dataflow, provision agreement or data structure definition) in its
+  metadata.
 
 SDMX-Parquet complements the other SDMX formats: SDMX-ML, SDMX-JSON and
 SDMX-CSV remain the formats for full-featured exchange and for human-readable
@@ -32,9 +33,9 @@ tabular data.
 
 SDMX-Parquet 1.0 covers **data messages**:
 
-- a file contains data of one dataflow, in a flat (one row per observation)
-  representation; the data can be delivered as one file or split across
-  several files;
+- a file contains data of one dataflow, provision agreement or data structure
+  definition, in a flat (one row per observation) representation; the data
+  can be delivered as one file or split across several files;
 - column names are SDMX component IDs, and values are IDs only (no labels);
 - time periods are provided both as reported and as start/end timestamps.
 

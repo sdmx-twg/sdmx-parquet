@@ -21,8 +21,7 @@ structural metadata or reference metadata.
 
 SDMX-Parquet 1.0 applies to both **SDMX 2.1** and **SDMX 3.x**:
 
-- it can represent data of dataflows defined with SDMX 2.1 or SDMX 3.x
-  structures;
+- it can represent data defined with SDMX 2.1 or SDMX 3.x structures;
 - it can be returned by web services implementing either SDMX REST line, with
   the same media type, behaviour and error handling (see
   [Relation to SDMX REST](#relation-to-sdmx-rest)).
@@ -78,13 +77,15 @@ or random access such as HTTP range requests) before it can read any data.
 ## Message overview
 
 An SDMX-Parquet data message is a Parquet file containing data of **one
-dataflow**. Each row contains the information related to **one
+structure**: a dataflow, a provision agreement or a data structure definition.
+Each row contains the information related to **one
 observation**: its dimension values, measure values and attribute values.
 Values of attributes attached to a partial key (series, group or dataset
 level) are repeated on each related observation row.
 
-- The data of a dataflow MAY be delivered as one file or split across several
-  files, e.g. partitioned by a dimension (see [Partitioning](#partitioning)).
+- The data MAY be delivered as one file or split across several files, e.g.
+  partitioned by a dimension or by provision agreement (see
+  [Partitioning](#partitioning)).
   Each file is an SDMX-Parquet file on its own: it has all the component
   columns and the file metadata defined in this guide.
 - Attribute values attached to a partial key for which no observation exists
@@ -107,15 +108,16 @@ level) are repeated on each related observation row.
 | [Custom column](#custom-columns) | Any implementer-defined column. | No |
 
 There are no columns for the structure identification or the action: the
-dataflow is identified in the [file metadata](#file-metadata), and
+structure is identified in the [file metadata](#file-metadata), and
 [data actions](#data-actions-and-incremental-updates) are not supported.
 Labels are not included (IDs only).
 
 ## Design principles
 
-- **One dataflow per file:** the file contains the data of a single dataflow.
+- **One structure per file:** the file contains data of a single dataflow,
+  provision agreement or data structure definition, as in SDMX-CSV.
 - **Sender-defined content:** a file typically contains the complete data of
-  the dataflow, but the data can also be split across several files (see
+  the structure, but the data can also be split across several files (see
   [Partitioning](#partitioning)), or be a subset returned by a web service
   that supports filtering (see [Relation to SDMX REST](#relation-to-sdmx-rest)).
 - **Flat representation:** one row per observation, with all components as
@@ -140,12 +142,11 @@ in the Parquet format).
 
 | Key | Required | Content | Example |
 | --- | --- | --- | --- |
-| `sdmx.structure` | Yes | Type of structure. MUST be `dataflow`. | `dataflow` |
-| `sdmx.structure_id` | Yes | Dataflow identification `AGENCY:ID(VERSION)`, as in SDMX-CSV `STRUCTURE_ID`. For non-versioned artefacts the version is omitted, e.g. `AGENCY:DF_ID`. | `ESTAT:NA_MAIN(1.6.0)` |
+| `sdmx.structure` | Yes | Type of structure, as in SDMX-CSV `STRUCTURE`: `dataflow`, `dataprovision` (provision agreement) or `datastructure` (data structure definition). | `dataflow` |
+| `sdmx.structure_id` | Yes | Identification `AGENCY:ID(VERSION)` of the dataflow, provision agreement or data structure definition, as in SDMX-CSV `STRUCTURE_ID`. For non-versioned artefacts the version is omitted, e.g. `AGENCY:DF_ID`. | `ESTAT:NA_MAIN(1.6.0)` |
 | `sdmx.format_version` | Yes | Version of the SDMX-Parquet specification. | `1.0.0` |
-| `sdmx.prepared` | Recommended | When the file was produced, as an `xs:dateTime` in UTC, as the `Prepared` field of an SDMX message header. | `2026-10-20T08:00:00Z` |
 | `sdmx.sender` | Recommended | ID of the organisation that produced the file, as the `Sender` field of an SDMX message header. | `ESTAT` |
-| `sdmx.as_of` | When the data reflect an earlier point in time | The point in time the data reflects, as an `xs:dateTime` in UTC, e.g. for a response to an `asOf` query, or for data prepared for a registration as they were at a given date. | `2026-10-01T00:00:00Z` |
+| `sdmx.as_of` | Recommended | The point in time the data reflect, as an `xs:dateTime` in UTC, e.g. when the data were extracted, or the point in time requested by an `asOf` query. | `2026-10-01T00:00:00Z` |
 
 - Keys starting with `sdmx.` are reserved for this specification.
 - Senders MAY add other keys. Keys defined by other conventions are
@@ -153,12 +154,10 @@ in the Parquet format).
 - `sdmx.structure_id` MUST identify a single, concrete version: wildcards and the version operators of SDMX REST queries
   (`*`, `+`, `~`) are not allowed.
 - A file without the required keys is not an SDMX-Parquet file.
-- Receivers MUST reject a file whose `sdmx.structure` value is not
-  `dataflow`, or whose `sdmx.format_version` has a major version they do not
+- Receivers MUST reject a file whose `sdmx.structure` value is not one of
+  `dataflow`, `dataprovision` or `datastructure`, or whose
+  `sdmx.format_version` has a major version they do not
   support. Receivers MAY ignore keys they do not know.
-- When `sdmx.as_of` is absent, the file contains the data of the dataflow as
-  they were when the file was produced, i.e. at the time given in
-  `sdmx.prepared`.
 
 ## Columns
 
@@ -175,11 +174,13 @@ in the Parquet format).
   in [sdmx-im#75](https://github.com/sdmx-twg/sdmx-im/issues/75). Until then,
   the file includes a column for every attribute of the data structure
   definition.
-- For a dataflow based on an evolving data structure (SDMX 3.x), the
-  dimensions are those fixed by the dataflow's dimension constraint.
-- Metadata attributes are not supported: they are defined in a metadata
-  structure definition, not in the data structure definition of the
-  dataflow. The file MUST NOT include columns for them.
+- For a dataflow or a provision agreement based on an evolving data structure
+  (SDMX 3.x), the dimensions are those fixed by the dataflow's dimension
+  constraint.
+- Metadata attributes, defined in a metadata structure definition linked to
+  the data structure definition, MAY be included as columns. SDMX-Parquet 1.0
+  gives no guidelines for their columns (e.g. for hierarchical metadata
+  attributes); receivers MAY handle them as [custom columns](#custom-columns).
 - Each column MUST have the Parquet type defined in
   [Type mapping](#type-mapping) for the component's representation.
 - Senders SHOULD order component columns as defined in the data structure
@@ -434,9 +435,12 @@ results, compression and HTTP headers), are defined in the
 [SDMX REST API](https://github.com/sdmx-twg/sdmx-rest/blob/develop/docs/data.md#sdmx-parquet). In short:
 
 - a web service that supports SDMX-Parquet returns the complete data of a
-  dataflow for a query without filters;
-- it MAY also support filtering (e.g. by key or by component), and returning
-  only the requested components, in which case the file contains that subset;
+  dataflow, provision agreement or data structure definition for a query
+  without filters;
+- each web service decides whether to support other query parameters with
+  SDMX-Parquet, including filtering (e.g. by key or by component) and
+  returning only the requested components, in which case the file contains
+  that subset;
 - for an `asOf` query, the sender writes the requested point in time in the
   [`sdmx.as_of`](#file-metadata) file metadata key.
 
@@ -448,7 +452,7 @@ equivalent SDMX 2.1 parameters.
 - Data actions (Merge, Replace, Delete) are not supported: a file contains
   data, not changes to data.
 - Incremental updates (e.g. responses to `updatedAfter` queries) are not
-  supported.
+  defined: without data actions, a file cannot represent deleted data.
 
 ## Implementation considerations
 
@@ -482,7 +486,7 @@ or on time.
 
 ### Partitioning
 
-The data of a dataflow can be delivered as several files (see
+The data can be delivered as several files (see
 [Message overview](#message-overview)). Data warehouses and object stores
 often keep large datasets this way, e.g. partitioned by a dimension in Hive
 style:
@@ -574,7 +578,7 @@ required group field_id=-1 schema {
 | `sdmx.structure` | `dataflow` |
 | `sdmx.structure_id` | `ESTAT:NA_MAIN(1.6.0)` |
 | `sdmx.format_version` | `1.0.0` |
-| `sdmx.prepared` | `2026-10-20T08:00:00Z` |
+| `sdmx.as_of` | `2026-10-20T08:00:00Z` |
 | `sdmx.sender` | `ESTAT` |
 
 **Content:**
