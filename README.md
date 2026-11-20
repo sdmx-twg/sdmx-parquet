@@ -32,8 +32,9 @@ tabular data.
 
 SDMX-Parquet 1.0 covers **data messages**:
 
-- one file contains the complete data of one dataflow, in a flat (one row per
-  observation) representation;
+- a file contains data of one dataflow, in a flat (one row per observation)
+  representation; the data can be delivered as one file or split across
+  several files;
 - column names are SDMX component IDs, and values are IDs only (no labels);
 - time periods are provided both as reported and as start/end timestamps.
 
@@ -41,9 +42,8 @@ Structural metadata, reference metadata, data actions (merge, replace,
 delete) and incremental updates are out of scope.
 
 SDMX REST web services can return SDMX-Parquet with the media type
-`application/vnd.sdmx.data+parquet; version=1.0.0`, for queries that request
-the complete data of a dataflow. See the
-[SDMX REST API](https://github.com/sdmx-twg/sdmx-rest) for details.
+`application/vnd.sdmx.data+parquet; version=1.0.0`, for data queries. See the
+[SDMX REST API](https://github.com/sdmx-twg/sdmx-rest/blob/develop/docs/data.md#sdmx-parquet) for the supported queries.
 
 ## Documentation
 

@@ -31,6 +31,10 @@ Some features only exist in SDMX 3.x data: multiple measures, multi-valued
 and multi-lingual attributes, and the GeospatialInformation representation.
 Their mappings apply only when such components are present.
 
+An SDMX-Parquet file can also be registered in an SDMX registry as the data
+source of a data registration (SDMX 3.2), as a file whose format is the
+SDMX-Parquet media type, e.g. `application/vnd.sdmx.data+parquet;version=1.0.0`.
+
 ### Conventions
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD",
@@ -73,15 +77,16 @@ or random access such as HTTP range requests) before it can read any data.
 
 ## Message overview
 
-An SDMX-Parquet data message is a single Parquet file containing the complete
-data of **one dataflow**. Each row contains the information related to **one
+An SDMX-Parquet data message is a Parquet file containing data of **one
+dataflow**. Each row contains the information related to **one
 observation**: its dimension values, measure values and attribute values.
 Values of attributes attached to a partial key (series, group or dataset
 level) are repeated on each related observation row.
 
-- The data of a dataflow MUST be delivered as one file. Datasets split across
-  several files (e.g. partitioned by a dimension) are not defined in
-  SDMX-Parquet 1.0.
+- The data of a dataflow MAY be delivered as one file or split across several
+  files, e.g. partitioned by a dimension (see [Partitioning](#partitioning)).
+  Each file is an SDMX-Parquet file on its own: it has all the component
+  columns and the file metadata defined in this guide.
 - Attribute values attached to a partial key for which no observation exists
   cannot be represented, as there is no row to hold them.
 
@@ -109,10 +114,10 @@ Labels are not included (IDs only).
 ## Design principles
 
 - **One dataflow per file:** the file contains the data of a single dataflow.
-- **Complete content:** the file contains the entire existing data of the
-  dataflow, or, for an `asOf` query, the entire data as it was at that point
-  in time. Filtering is not supported (see
-  [Relation to SDMX REST](#relation-to-sdmx-rest)).
+- **Sender-defined content:** a file typically contains the complete data of
+  the dataflow, but the data can also be split across several files (see
+  [Partitioning](#partitioning)), or be a subset returned by a web service
+  that supports filtering (see [Relation to SDMX REST](#relation-to-sdmx-rest)).
 - **Flat representation:** one row per observation, with all components as
   columns.
 - **Cube components:** the combination of dimension values can be expressed
@@ -140,30 +145,36 @@ in the Parquet format).
 | `sdmx.format_version` | Yes | Version of the SDMX-Parquet specification. | `1.0.0` |
 | `sdmx.prepared` | Recommended | When the file was produced, as an `xs:dateTime` in UTC, as the `Prepared` field of an SDMX message header. | `2026-10-20T08:00:00Z` |
 | `sdmx.sender` | Recommended | ID of the organisation that produced the file, as the `Sender` field of an SDMX message header. | `ESTAT` |
-| `sdmx.datastructure_id` | Optional | Identification `AGENCY:ID(VERSION)` of the data structure definition used by the dataflow. | `ESTAT:DSD_NA_MAIN(1.6.0)` |
-| `sdmx.as_of` | When the file answers an `asOf` query | The point in time the data reflects, as an `xs:dateTime` in UTC. | `2026-10-01T00:00:00Z` |
+| `sdmx.as_of` | When the data reflect an earlier point in time | The point in time the data reflects, as an `xs:dateTime` in UTC, e.g. for a response to an `asOf` query, or for data prepared for a registration as they were at a given date. | `2026-10-01T00:00:00Z` |
 
 - Keys starting with `sdmx.` are reserved for this specification.
 - Senders MAY add other keys. Keys defined by other conventions are
   unaffected, e.g. `geo` for [GeoParquet](#geospatial-columns).
-- `sdmx.structure_id` and `sdmx.datastructure_id` MUST identify a single,
-  concrete version: wildcards and the version operators of SDMX REST queries
+- `sdmx.structure_id` MUST identify a single, concrete version: wildcards and the version operators of SDMX REST queries
   (`*`, `+`, `~`) are not allowed.
 - A file without the required keys is not an SDMX-Parquet file.
 - Receivers MUST reject a file whose `sdmx.structure` value is not
   `dataflow`, or whose `sdmx.format_version` has a major version they do not
   support. Receivers MAY ignore keys they do not know.
-- When `sdmx.as_of` is absent, the file contains the current data of the
-  dataflow at the time it was produced.
+- When `sdmx.as_of` is absent, the file contains the data of the dataflow as
+  they were when the file was produced, i.e. at the time given in
+  `sdmx.prepared`.
 
 ## Columns
 
 ### Component columns
 
 - Each column is named by the ID of its SDMX component.
-- The file MUST include a column for every component defined by the data
-  structure definition: dimensions, measures and attributes. A measure or
-  attribute column with no values for any row contains only nulls.
+- Unless a web service returns only the components requested by a query (see
+  [Relation to SDMX REST](#relation-to-sdmx-rest)), the file MUST include a
+  column for every component defined by the data structure definition:
+  dimensions, measures and attributes. A measure or attribute column with no
+  values for any row contains only nulls.
+- How attributes apply to a constrained dataflow (e.g. an attribute related
+  only to a dimension that the dataflow constraint excludes) is being clarified
+  in [sdmx-im#75](https://github.com/sdmx-twg/sdmx-im/issues/75). Until then,
+  the file includes a column for every attribute of the data structure
+  definition.
 - For a dataflow based on an evolving data structure (SDMX 3.x), the
   dimensions are those fixed by the dataflow's dimension constraint.
 - Metadata attributes are not supported: they are defined in a metadata
@@ -270,13 +281,13 @@ reserved names are defined in [Time period columns](#time-period-columns) and
 | URI | `https://example.org` | `STRING` | `BYTE_ARRAY` |
 | XHTML | `<p>Hello</p>` | `STRING` | `BYTE_ARRAY` |
 
-- Numeric is a string of digits that can have leading zeros (e.g. `00123`),
+- **Numeric** is a string of digits that can have leading zeros (e.g. `00123`),
   so it maps to `STRING`.
-- Day and Month hold the day of the month (1–31) and the month (1–12) as
-  integers. Day, Month and MonthDay are recurring calendar values without a
+- **Day** and **Month** hold the day of the month (1–31) and the month (1–12)
+  as integers. **Day**, **Month** and **MonthDay** are recurring calendar values without a
   year, not time periods, so they are single-column.
-- Time values are local times: no time zone conversion applies.
-- XHTML values are stored as-is: unlike in SDMX-CSV, no quoting or escaping
+- **Time** values are local times: no time zone conversion applies.
+- **XHTML** values are stored as-is: unlike in SDMX-CSV, no quoting or escaping
   applies.
 
 ## Time period columns
@@ -415,75 +426,27 @@ SDMX REST data queries can return SDMX-Parquet with the media type:
 - Unsupported versions return `406 Not Acceptable`, as for other formats.
 - Web services that implement the [representation query parameters](https://github.com/sdmx-twg/sdmx-rest/blob/develop/docs/extend.md) of SDMX REST use `format=parquetdata`, e.g. `https://ws-entry-point/data/dataflow/ECB/EXR/1.0.0/*?format=parquetdata&formatVersion=1.0.0`.
 
-### Supported queries
+### Supported queries and responses
 
-Because a file always contains the complete data of one dataflow, an
-SDMX-Parquet response can only be returned for a data query that identifies
-exactly one dataflow and applies no filter, e.g.:
+The queries and parameters that a web service supports with SDMX-Parquet, and
+its responses otherwise (content negotiation, `406 Not Acceptable`, empty
+results, compression and HTTP headers), are defined in the
+[SDMX REST API](https://github.com/sdmx-twg/sdmx-rest/blob/develop/docs/data.md#sdmx-parquet). In short:
 
-- SDMX 3.x: `GET /data/dataflow/ECB/EXR/1.0.0/*`
-- SDMX 2.1: `GET /data/ECB,EXR,1.0/all`
+- a web service that supports SDMX-Parquet returns the complete data of a
+  dataflow for a query without filters;
+- it MAY also support filtering (e.g. by key or by component), and returning
+  only the requested components, in which case the file contains that subset;
+- for an `asOf` query, the sender writes the requested point in time in the
+  [`sdmx.as_of`](#file-metadata) file metadata key.
 
-When a request asks for `application/vnd.sdmx.data+parquet` together with key
-filtering or an unsupported parameter:
+Web services implementing the SDMX 2.1 REST line apply the same rules with the
+equivalent SDMX 2.1 parameters.
 
-- if the `Accept` header lists other acceptable media types (e.g.
-  `application/vnd.sdmx.data+parquet;version=1.0.0, application/vnd.sdmx.data+csv;version=2.1.0;q=0.5`),
-  the web service SHOULD answer with the most preferred of them that can
-  represent the result, following HTTP
-  [content negotiation](https://github.com/sdmx-twg/sdmx-rest/blob/master/doc/content_negotiation.md);
-- otherwise, the web service MUST return **`406 Not Acceptable`**, as defined
-  in [SDMX REST status codes](https://github.com/sdmx-twg/sdmx-rest/blob/master/doc/status.md),
-  and the error message SHOULD name the unsupported parameter(s).
-
-| Request element | SDMX REST line | Supported with SDMX-Parquet | Response when not supported |
-| --- | --- | --- | --- |
-| `context` | 3.x | `dataflow` only | `406` |
-| `agencyID`, `resourceID`, `version` (3.x); `flowRef` (2.1) | 3.x, 2.1 | Must identify exactly one dataflow | `406` |
-| `key` | 3.x, 2.1 | All values only (`*` in 3.x, `all` in 2.1) | `406` |
-| `providerRef` | 2.1 | All values only (`all` or omitted) | `406` |
-| `asOf` | 3.x | Yes, see below | — |
-| `c` | 3.x | No | `406` |
-| `startPeriod`, `endPeriod` | 2.1 | No | `406` |
-| `updatedAfter` | 3.x, 2.1 | No | `406` |
-| `firstNObservations`, `lastNObservations` | 3.x, 2.1 | No | `406` |
-| `dimensionAtObservation` | 3.x, 2.1 | No | `406` |
-| `detail` | 2.1 | No | `406` |
-| `attributes`, `measures` | 3.x | No | `406` |
-| `includeHistory` | 3.x, 2.1 | No | `406` |
-| `offset`, `limit`, `sort` | 3.x | No | `406` |
-| `reportingYearStartDay` | 3.x | No | `406` |
-| `Accept` media type parameters other than `version` (e.g. `labels`, `timeFormat`, `keys`) | 3.x, 2.1 | No | `406` |
-| `Accept-Language` header | 3.x, 2.1 | Not applicable: IDs only | Ignored |
-
-In the table, `406` applies when no other acceptable media type can be used, as described above.
-
-**`asOf`:** the response contains the complete data of the dataflow as it was
-at the requested point in time. The sender MUST write that point in time in
-the [`sdmx.as_of`](#file-metadata) file metadata key.
-
-### Empty results and errors
-
-- SDMX 3.x: when the dataflow has no data, the web service returns
-  `204 No Content`, without a Parquet file.
-- SDMX 2.1: when the dataflow has no data, the web service returns
-  `404 Not Found` with SDMX error code `100` (No results found).
-- Error responses (`404`, `406`, etc.) never contain a Parquet file.
-
-### Compression and HTTP
-
-- Compression is applied inside the Parquet file (column-chunk compression),
-  not negotiated over HTTP.
-- `Accept-Encoding` keeps its standard HTTP meaning (transport encoding) and
-  is not used to select the Parquet compression codec.
-- Web services SHOULD NOT apply an additional `Content-Encoding` by default,
-  as the payload is already compressed.
-- Web services SHOULD send the `Content-Disposition` header with the `attachment` type and a file name built from the dataflow identification, e.g. `Content-Disposition: attachment; filename="ECB_EXR_1.0.0.parquet"`.
-  
 ### Data actions and incremental updates
 
 - Data actions (Merge, Replace, Delete) are not supported: a file contains
-  the complete data of the dataflow.
+  data, not changes to data.
 - Incremental updates (e.g. responses to `updatedAfter` queries) are not
   supported.
 
@@ -519,18 +482,17 @@ or on time.
 
 ### Partitioning
 
-An SDMX-Parquet message is always one file (see
+The data of a dataflow can be delivered as several files (see
 [Message overview](#message-overview)). Data warehouses and object stores
-often keep large datasets as several Parquet files instead, e.g. partitioned
-by a dimension in Hive style:
+often keep large datasets this way, e.g. partitioned by a dimension in Hive
+style:
 
 ```text
 s3://bucket/ESTAT_NA_MAIN_1.6.0/REF_AREA=DE/data_0.parquet
 s3://bucket/ESTAT_NA_MAIN_1.6.0/REF_AREA=FR/data_0.parquet
 ```
 
-Such a set of files is a storage layout, not an SDMX-Parquet message. When
-SDMX-Parquet data is stored this way:
+When SDMX-Parquet data is split this way:
 
 - keep the partition columns inside each file, with their mapped types, so
   that every file has all component columns; Hive-style writers usually drop
@@ -539,8 +501,8 @@ SDMX-Parquet data is stored this way:
 - write the same `sdmx.` keys in the metadata of every file;
 - partition by a dimension with few distinct values, or by time, to avoid
   many small files;
-- to deliver the data as an SDMX-Parquet message, combine the files into one,
-  e.g. with DuckDB:
+- to deliver the data as a single file, combine the files into one, e.g. with
+  DuckDB:
 
 ```sql
 COPY (
